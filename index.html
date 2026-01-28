@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hearts & Flowers</title>
+
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      overflow:hidden;
+      background: radial-gradient(1200px 600px at 50% 10%, #3a1b3a, #0b0b14 60%, #06060b);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans Arabic", "Noto Naskh Arabic", sans-serif;
+    }
+
+    /* Falling items */
+    .falling{
+      position: fixed;
+      top: -10vh;
+      left: 0;
+      transform: translate3d(0,0,0);
+      will-change: transform, opacity;
+      pointer-events:none;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
+      animation: fall linear forwards;
+      opacity: .95;
+    }
+
+    @keyframes fall{
+      0%   { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; }
+      100% { transform: translate3d(var(--drift, 0px), 110vh, 0) rotate(var(--spin, 360deg)); opacity: 0; }
+    }
+
+    /* Center UI */
+    .center{
+      position: fixed;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 24px;
+      pointer-events:none;
+    }
+
+    #countdown{
+      font-size: clamp(48px, 10vw, 120px);
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: rgba(255,255,255,.92);
+      text-shadow: 0 14px 40px rgba(0,0,0,.55);
+      opacity: 0;
+      transform: translateY(10px) scale(.98);
+      transition: opacity .35s ease, transform .35s ease;
+      direction:ltr; /* keep numbers normal */
+    }
+    #countdown.show{
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    #messageWrap{
+      position: fixed;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 24px;
+      pointer-events:none;
+    }
+
+    #message{
+      max-width: min(900px, 92vw);
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(6px);
+
+      font-size: clamp(18px, 3.6vw, 34px);
+      line-height: 1.6;
+      color: rgba(255,255,255,.95);
+
+      text-align: right;
+      direction: rtl;
+      unicode-bidi: plaintext; /* helps mixed Arabic/English flow */
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity .8s ease, transform .8s ease;
+      white-space: pre-wrap;
+    }
+
+    #message.show{
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .cursor{
+      display:inline-block;
+      width: 10px;
+      margin-right: 6px;
+      opacity: .8;
+      animation: blink .8s infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+</head>
+
+<body>
+  <div class="center">
+    <div id="countdown">1</div>
+  </div>
+
+  <div id="messageWrap">
+    <div id="message" lang="ar" dir="rtl"></div>
+  </div>
+
+  <script>
+    // 1) Rain hearts + flowers (create elements, animate, then remove). 
+    const symbols = ["💗","💖","❤️","💕","🙌🏼","🌺","🌷","💪🏽"];
+    const maxOnScreen = 80;
+
+    function spawnFalling(){
+      if (document.querySelectorAll(".falling").length > maxOnScreen) return;
+
+      const el = document.createElement("span");
+      el.className = "falling";
+      el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+
+      const left = Math.random() * 100; // vw
+      const size = 14 + Math.random() * 24; // px
+      const duration = 3.2 + Math.random() * 3.6; // sec
+      const drift = (Math.random() * 2 - 1) * 160; // px
+      const spin = (Math.random() * 2 - 1) * (360 + Math.random() * 360); // deg
+
+      el.style.left = left + "vw";
+      el.style.fontSize = size + "px";
+      el.style.animationDuration = duration + "s";
+      el.style.setProperty("--drift", drift + "px");
+      el.style.setProperty("--spin", spin + "deg");
+
+      document.body.appendChild(el);
+
+      setTimeout(() => el.remove(), (duration + 0.3) * 1000);
+    }
+
+    const rainTimer = setInterval(spawnFalling, 140);
+
+    // 2) Countdown 1..3 then type message (RTL)
+    const countdownEl = document.getElementById("countdown");
+    const messageEl = document.getElementById("message");
+
+    const text =
+      "Good luck Esad with your course you can do it 💪🏽";
+
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    async function run(){
+      // Countdown
+      for (let n = 1; n <= 3; n++){
+        countdownEl.textContent = String(n);
+        countdownEl.classList.add("show");
+        await sleep(750);
+        countdownEl.classList.remove("show");
+        await sleep(250);
+      }
+      countdownEl.style.display = "none";
+
+      // Show message box
+      messageEl.classList.add("show");
+
+      // Cursor + typewriter
+      const cursor = document.createElement("span");
+      cursor.className = "cursor";
+      cursor.textContent = "▌";
+      messageEl.appendChild(cursor);
+
+      await sleep(400);
+
+      let i = 0;
+      const speedMs = 85;
+
+      const typer = setInterval(() => {
+        if (i >= text.length){
+          clearInterval(typer);
+          cursor.remove();
+          return;
+        }
+        // Insert before cursor so cursor stays at the end
+        cursor.insertAdjacentText("beforebegin", text[i]);
+        i++;
+      }, speedMs);
+    }
+
+    run();
+  </script>
+</body>
+</html>
